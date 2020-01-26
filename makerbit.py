@@ -171,11 +171,11 @@ class CalibrationLock:
     #ELE_0_TO_10 = const(0b1011)
     #ELE_0_TO_11 = const(12) #const(0b1100)
 
-class Proximity:
-    DISABLED = const(0b00)
-    ELE0_TO_1 = const(0b01)
-    ELE_0_TO_3 = const(0b10)
-    ELE_0_TO_11 = const(0b11)
+#class Proximity:
+#    DISABLED = const(0b00)
+#    ELE0_TO_1 = const(0b01)
+#    ELE_0_TO_3 = const(0b10)
+#    ELE_0_TO_11 = const(0b11)
 
 class Config:
     MHDR = const(0x2b)
@@ -266,96 +266,88 @@ class Config:
 class MPR121:
     def __init__(self, address=0x5A):
         self.address = address
-        self.buf1 = bytearray(1)
-        self.buf2 = bytearray(2)
-        self.startCaptureWithDefaults()
-
-    def startCaptureWithDefaults(self):
         self.reset()
         self.stop()
 
+        #
+        # Start capturing with default configuration
+
         # Input filter for rising state
-        self.configure(Config.MHDR, 0x01)
-        self.configure(Config.NHDR, 0x01)
-        self.configure(Config.NCLR, 0x10)
-        self.configure(Config.FDLR, 0x20)
+        self.set(Config.MHDR, 0x01)
+        self.set(Config.NHDR, 0x01)
+        self.set(Config.NCLR, 0x10)
+        self.set(Config.FDLR, 0x20)
 
         # Input filter for falling state
-        self.configure(Config.MHDF, 0x01)
-        self.configure(Config.NHDF, 0x01)
-        self.configure(Config.NCLF, 0x10)
-        self.configure(Config.FDLF, 0x20)
+        self.set(Config.MHDF, 0x01)
+        self.set(Config.NHDF, 0x01)
+        self.set(Config.NCLF, 0x10)
+        self.set(Config.FDLF, 0x20)
 
         # Input filter for touched state
-        self.configure(Config.NHDT, 0x01)
-        self.configure(Config.NCLT, 0x10)
-        self.configure(Config.FDLT, 0xff)
+        self.set(Config.NHDT, 0x01)
+        self.set(Config.NCLT, 0x10)
+        self.set(Config.FDLT, 0xff)
 
         # Unused proximity sensor filter
-        self.configure(Config.MHDPROXR, 0x0f)
-        self.configure(Config.NHDPROXR, 0x0f)
-        self.configure(Config.NCLPROXR, 0x00)
-        self.configure(Config.FDLPROXR, 0x00)
-        self.configure(Config.MHDPROXF, 0x01)
-        self.configure(Config.NHDPROXF, 0x01)
-        self.configure(Config.NCLPROXF, 0xff)
-        self.configure(Config.FDLPROXF, 0xff)
-        self.configure(Config.NHDPROXT, 0x00)
-        self.configure(Config.NCLPROXT, 0x00)
-        self.configure(Config.FDLPROXT, 0x00)
+        self.set(Config.MHDPROXR, 0x0f)
+        self.set(Config.NHDPROXR, 0x0f)
+        self.set(Config.NCLPROXR, 0x00)
+        self.set(Config.FDLPROXR, 0x00)
+        self.set(Config.MHDPROXF, 0x01)
+        self.set(Config.NHDPROXF, 0x01)
+        self.set(Config.NCLPROXF, 0xff)
+        self.set(Config.FDLPROXF, 0xff)
+        self.set(Config.NHDPROXT, 0x00)
+        self.set(Config.NCLPROXT, 0x00)
+        self.set(Config.FDLPROXT, 0x00)
 
         # Debounce configuration (used primarily for interrupts)
-        self.configure(Config.DTR, 0x11)
+        self.set(Config.DTR, 0x11)
 
         # Electrode clock frequency etc
-        self.configure(Config.AFE1, 0xff)
-        self.configure(Config.AFE2, 0x30)
+        self.set(Config.AFE1, 0xff)
+        self.set(Config.AFE2, 0x30)
 
         # Enable autoconfiguration / calibration
-        self.configure(Config.AUTO_CONFIG_0, 0x00)
-        self.configure(Config.AUTO_CONFIG_1, 0x00)
+        self.set(Config.AUTO_CONFIG_0, 0x00)
+        self.set(Config.AUTO_CONFIG_1, 0x00)
 
         # Tuning parameters for the autocalibration algorithm
-        self.configure(Config.AUTO_CONFIG_USL, 0x00)
-        self.configure(Config.AUTO_CONFIG_LSL, 0x00)
-        self.configure(Config.AUTO_CONFIG_TL, 0x00)
+        self.set(Config.AUTO_CONFIG_USL, 0x00)
+        self.set(Config.AUTO_CONFIG_LSL, 0x00)
+        self.set(Config.AUTO_CONFIG_TL, 0x00)
 
-        # Default sensitivity thresholds
-        self.configureThresholds(60, 20)
+        # Set touch thresholds
+        for i in range(0, 12):
+            self.set(Config.E0TTH + i * 2, 60)
 
-        # Restart capture
+        # Set release thresholds
+        for i in range(0, 12):
+            self.set(Config.E0RTH + i * 2, 20)
+
+        # Start capture
         self.start(
             CalibrationLock.BaselineTrackingAndInitialize,
-            Proximity.DISABLED,
-            12 # Touch.ELE_0_TO_11
+            0b00,    # Proximity.DISABLED,
+            0b1100,  # Touch.ELE_0_TO_11
         )
 
-    def _writeCommandData(self, command, data):
-        self.buf2[0] = command
-        self.buf2[1] = data
-        i2c.write(self.address,self.buf2)
-
-    def _writeCommand(self, command):
-        self.buf1[0] = command
-        i2c.write(self.address, self.buf1)
-
-    def configure(self, register, value):
-        self._writeCommandData(register, value)
-
-    def configureThresholds(self, touch, release):
-        for i in range(0, 12):
-            self.configure(Config.E0TTH + i * 2, touch)
-            self.configure(Config.E0RTH + i * 2, release)
+    def set(self, register, value):
+        buf = bytearray(2)
+        buf[0] = command
+        buf[1] = data
+        i2c.write(self.address, buf)
 
     def reset(self):
-        self._writeCommandData(0x80, 0x63)
+        self.set(0x80, 0x63)
         sleep_ms(30)
 
     def stop(self):
-        self._writeCommandData(Config.ECR, 0x0)
+        self.set(Config.ECR, 0x0)
 
     def start(self, cl, eleprox, ele):
-        self._writeCommandData(Config.ECR, (cl << 6) | (eleprox << 4) | ele)
+        self.set(Config.ECR, (cl << 6) | (eleprox << 4) | ele)
 
     def readTouchStatus(self):
         res = i2c.read(self.address, 2)
