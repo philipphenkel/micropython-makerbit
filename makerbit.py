@@ -1,10 +1,36 @@
-# microbit-module: makerbit@0.0.3
-from microbit import pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10, pin11, pin12, pin13, pin14, pin15, pin16
-from time import sleep_us
+# microbit-module: makerbit@0.0.4
+
+"""
+Copyright (c) 2020 Roger Wagner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+from microbit import i2c, pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10, pin11, pin12, pin13, pin14, pin15, pin16
+from time import sleep_us, sleep_ms
 from time import ticks_us
 from machine import time_pulse_us
 from micropython import const
+from ustruct import unpack
 
+def makerbit_version():
+    return "0.0.4"
 
 def _get_pin(pin_index):
     pins = {
@@ -118,3 +144,229 @@ class Ultrasonic:
 
         # Return distance
         return travel_time // self.distance_unit
+
+
+class CalibrationLock:
+    BaselineTrackingOn = const(0b00)
+    BaselineTrackingOff = const(0b01)
+    BaselineTrackingAndInitializeFirst5MSB = const(0b10)
+    BaselineTrackingAndInitialize = const(0b11)
+
+
+
+
+
+#class Touch:
+    #DISABLED = const(0b0000)
+    #ELE_0 = const(0b0001)
+    #ELE_0_TO_1 = const(0b0010)
+    #ELE_0_TO_2 = const(0b0011)
+    #ELE_0_TO_3 = const(0b0100)
+    #ELE_0_TO_4 = const(0b0101)
+    #ELE_0_TO_5 = const(0b0110)
+    #ELE_0_TO_6 = const(0b0111)
+    #ELE_0_TO_7 = const(0b1000)
+    #ELE_0_TO_8 = const(0b1001)
+    #ELE_0_TO_9 = const(0b1010)
+    #ELE_0_TO_10 = const(0b1011)
+    #ELE_0_TO_11 = const(12) #const(0b1100)
+
+class Proximity:
+    DISABLED = const(0b00)
+    ELE0_TO_1 = const(0b01)
+    ELE_0_TO_3 = const(0b10)
+    ELE_0_TO_11 = const(0b11)
+
+class Config:
+    MHDR = const(0x2b)
+    NHDR = const(0x2c)
+    NCLR = const(0x2d)
+    FDLR = const(0x2e)
+    MHDF = const(0x2f)
+    NHDF = const(0x30)
+    NCLF = const(0x31)
+    FDLF = const(0x32)
+    NHDT = const(0x33)
+    NCLT = const(0x34)
+    FDLT = const(0x35)
+    MHDPROXR = const(0x36)
+    NHDPROXR = const(0x37)
+    NCLPROXR = const(0x38)
+    FDLPROXR = const(0x39)
+    MHDPROXF = const(0x3a)
+    NHDPROXF = const(0x3b)
+    NCLPROXF = const(0x3c)
+    FDLPROXF = const(0x3d)
+    NHDPROXT = const(0x3e)
+    NCLPROXT = const(0x3f)
+    FDLPROXT = const(0x40)
+    E0TTH = const(0x41)
+    E0RTH = const(0x42)
+    E1TTH = const(0x43)
+    E1RTH = const(0x44)
+    E2TTH = const(0x45)
+    E2RTH = const(0x46)
+    E3TTH = const(0x47)
+    E3RTH = const(0x48)
+    E4TTH = const(0x49)
+    E4RTH = const(0x4a)
+    E5TTH = const(0x4b)
+    E5RTH = const(0x4c)
+    E6TTH = const(0x4d)
+    E6RTH = const(0x4e)
+    E7TTH = const(0x4f)
+    E7RTH = const(0x50)
+    E8TTH = const(0x51)
+    E8RTH = const(0x52)
+    E9TTH = const(0x53)
+    E9RTH = const(0x54)
+    E10TTH = const(0x55)
+    E10RTH = const(0x56)
+    E11TTH = const(0x57)
+    E11RTH = const(0x58)
+    E12TTH = const(0x59)
+    E12RTH = const(0x5a)
+    DTR = const(0x5b)
+    AFE1 = const(0x5c)
+    AFE2 = const(0x5d)
+    ECR = const(0x5e)
+    CDC0 = const(0x5f)
+    CDC1 = const(0x60)
+    CDC2 = const(0x62)
+    CDC4 = const(0x63)
+    CDC5 = const(0x64)
+    CDC6 = const(0x65)
+    CDC7 = const(0x66)
+    CDC8 = const(0x67)
+    CDC9 = const(0x68)
+    CDC10 = const(0x69)
+    CDC11 = const(0x6a)
+    CDC12 = const(0x6b)
+    CDT_0_1 = const(0x6c)
+    CDT_2_3 = const(0x6d)
+    CDT_4_5 = const(0x6e)
+    CDT_6_7 = const(0x6f)
+    CDT_8_9 = const(0x70)
+    CDT_10_11 = const(0x71)
+    CDT_12 = const(0x72)
+    GPIO_CTL0 = const(0x73)
+    GPIO_CTL1 = const(0x74)
+    GPIO_DIR = const(0x76)
+    GPIO_EN = const(0x77)
+    GPIO_SET = const(0x78)
+    GPIO_CLR = const(0x79)
+    GPIO_TOG = const(0x7a)
+    AUTO_CONFIG_0 = const(0x7b)
+    AUTO_CONFIG_1 = const(0x7c)
+    AUTO_CONFIG_USL = const(0x7d)
+    AUTO_CONFIG_LSL = const(0x7e)
+    AUTO_CONFIG_TL = const(0x7f)
+
+
+class MPR121:
+    def __init__(self, address=0x5A):
+        self.address = address
+        self.buf1 = bytearray(1)
+        self.buf2 = bytearray(2)
+        self.startCaptureWithDefaults()
+
+    def startCaptureWithDefaults(self):
+        self.reset()
+        self.stop()
+
+        # Input filter for rising state
+        self.configure(Config.MHDR, 0x01)
+        self.configure(Config.NHDR, 0x01)
+        self.configure(Config.NCLR, 0x10)
+        self.configure(Config.FDLR, 0x20)
+
+        # Input filter for falling state
+        self.configure(Config.MHDF, 0x01)
+        self.configure(Config.NHDF, 0x01)
+        self.configure(Config.NCLF, 0x10)
+        self.configure(Config.FDLF, 0x20)
+
+        # Input filter for touched state
+        self.configure(Config.NHDT, 0x01)
+        self.configure(Config.NCLT, 0x10)
+        self.configure(Config.FDLT, 0xff)
+
+        # Unused proximity sensor filter
+        self.configure(Config.MHDPROXR, 0x0f)
+        self.configure(Config.NHDPROXR, 0x0f)
+        self.configure(Config.NCLPROXR, 0x00)
+        self.configure(Config.FDLPROXR, 0x00)
+        self.configure(Config.MHDPROXF, 0x01)
+        self.configure(Config.NHDPROXF, 0x01)
+        self.configure(Config.NCLPROXF, 0xff)
+        self.configure(Config.FDLPROXF, 0xff)
+        self.configure(Config.NHDPROXT, 0x00)
+        self.configure(Config.NCLPROXT, 0x00)
+        self.configure(Config.FDLPROXT, 0x00)
+
+        # Debounce configuration (used primarily for interrupts)
+        self.configure(Config.DTR, 0x11)
+
+        # Electrode clock frequency etc
+        self.configure(Config.AFE1, 0xff)
+        self.configure(Config.AFE2, 0x30)
+
+        # Enable autoconfiguration / calibration
+        self.configure(Config.AUTO_CONFIG_0, 0x00)
+        self.configure(Config.AUTO_CONFIG_1, 0x00)
+
+        # Tuning parameters for the autocalibration algorithm
+        self.configure(Config.AUTO_CONFIG_USL, 0x00)
+        self.configure(Config.AUTO_CONFIG_LSL, 0x00)
+        self.configure(Config.AUTO_CONFIG_TL, 0x00)
+
+        # Default sensitivity thresholds
+        self.configureThresholds(60, 20)
+
+        # Restart capture
+        self.start(
+            CalibrationLock.BaselineTrackingAndInitialize,
+            Proximity.DISABLED,
+            12 # Touch.ELE_0_TO_11
+        )
+
+    def _writeCommandData(self, command, data):
+        self.buf2[0] = command
+        self.buf2[1] = data
+        i2c.write(self.address,self.buf2)
+
+    def _writeCommand(self, command):
+        self.buf1[0] = command
+        i2c.write(self.address, self.buf1)
+
+    def configure(self, register, value):
+        self._writeCommandData(register, value)
+
+    def configureThresholds(self, touch, release):
+        for i in range(0, 12):
+            self.configure(Config.E0TTH + i * 2, touch)
+            self.configure(Config.E0RTH + i * 2, release)
+
+    def reset(self):
+        self._writeCommandData(0x80, 0x63)
+        sleep_ms(30)
+
+    def stop(self):
+        self._writeCommandData(Config.ECR, 0x0)
+
+    def start(self, cl, eleprox, ele):
+        self._writeCommandData(Config.ECR, (cl << 6) | (eleprox << 4) | ele)
+
+    def readTouchStatus(self):
+        res = i2c.read(self.address, 2)
+        print(res)
+        return unpack("<H", res)[0]
+
+class TouchController:
+    def __init__(self):
+        self.device = MPR121()
+
+    def isTouched(self):
+        res = self.device.readTouchStatus()
+        print(res)
+        return res
