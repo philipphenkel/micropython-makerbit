@@ -29,6 +29,7 @@ from micropython import const
 from ustruct import unpack
 
 _i2c_addr = None
+_buf2 = bytearray(2)
 
 # CalibrationLock
 _BaselineTrackingOn = const(0b00)
@@ -145,26 +146,28 @@ _AUTO_CONFIG_TL = const(0x7f)
 
 
 def write(register, value):
-    global _i2c_addr
-    buf = bytearray(2)
-    buf[0] = register
-    buf[1] = value
-    i2c.write(_i2c_addr, buf)
+    _buf2[0] = register
+    _buf2[1] = value
+    i2c.write(_i2c_addr, _buf)
+
 
 def reset():
     write(0x80, 0x63)
     sleep_ms(30)
 
+
 def stop():
     write(_ECR, 0x0)
+
 
 def start(cl, eleprox, ele):
     write(_ECR, (cl << 6) | (eleprox << 4) | ele)
 
+
 def read():
-    global _i2c_addr
     res = i2c.read(_i2c_addr, 2)
     return unpack(b"<H", res)[0]
+
 
 def is_touched(sensor):
     if sensor < 5 or sensor > 16:
@@ -172,14 +175,16 @@ def is_touched(sensor):
     bit = 0b100000000000 >> (sensor - 5)
     return (bit & read()) != 0
 
+
 def get_sensor():
-    bit = 0b100000000000 # T5
+    bit = 0b100000000000  # T5
     status = read()
     for sensor in range(5, 17):
-      if (bit & status) != 0:
-        return sensor; # return first hit
-      bit >>= 1
+        if (bit & status) != 0:
+            return sensor  # return first hit
+        bit >>= 1
     return None
+
 
 def init(address):
     global _i2c_addr
@@ -208,7 +213,7 @@ def init(address):
     write(_NCLT, 0x10)
     write(_FDLT, 0xff)
 
-        # Unused proximity sensor filter
+    # Unused proximity sensor filter
     write(_MHDPROXR, 0x0f)
     write(_NHDPROXR, 0x0f)
     write(_NCLPROXR, 0x00)
@@ -251,5 +256,6 @@ def init(address):
         _PROXMITY_DISABLED,
         _TOUCH_ELE_0_TO_11
     )
+
 
 init(0x5A)
