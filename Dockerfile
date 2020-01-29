@@ -56,14 +56,30 @@ mp_lexer_t *mp_lexer_new_from_file(const char *filename) {\n\
 # Allow use of pin 5 and 11 as digital or analog pin
 COPY source/microbit/microbitpin.cpp /microbit-micropython/source/microbit/
 
-# build tool to produce bytecodes of python scripts
+# Remove antigravity module
+RUN rm /microbit-micropython/source/microbit/modantigravity.cpp && \
+    sed -i -e '/MP_ROM_PTR(&antigravity_module)/d' /microbit-micropython/inc/microbit/mpconfigport.h && \
+    sed -i -e '/{&antigravity_module/d' /microbit-micropython/source/microbit/help.c
+
+# Remove love module
+RUN rm /microbit-micropython/source/microbit/modlove.cpp && \
+    sed -i -e '/MP_ROM_PTR(&love_module)/d' /microbit-micropython/inc/microbit/mpconfigport.h  && \
+    sed -i -e '/{&love_module/d' /microbit-micropython/source/microbit/help.c && \
+    sed -i -e '/{&love_badaboom_obj/d' /microbit-micropython/source/microbit/help.c
+
+# Remove speech module
+RUN rm /microbit-micropython/source/microbit/modspeech.c && \
+    rm -rf /microbit-micropython/source/lib/sam && \
+    sed -i -e '/MP_ROM_PTR(&speech_module)/d' /microbit-micropython/inc/microbit/mpconfigport.h
+
+# Build MicroPython cross compiler
 WORKDIR /micropython/mpy-cross
 RUN make && cp ./mpy-cross /usr/bin
 
-# create the bytecode for our modules
+# Minify and compile Python modules to bytecode
 WORKDIR /tmp
 COPY *.py ./
-RUN for module in $(ls *.py); do pyminifier $module > tmp.py || exit 1; rm $module && mv tmp.py $module; done
+#RUN for module in $(ls *.py); do pyminifier $module > tmp.py || exit 1; rm $module && mv tmp.py $module; done
 RUN for module in $(ls *.py); do mpy-cross $module || exit 1; done
 
 # generate the c code of our module and place it in the right dir to be compiled
