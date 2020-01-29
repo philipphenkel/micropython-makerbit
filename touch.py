@@ -24,18 +24,17 @@ SOFTWARE.
 """
 
 from microbit import i2c
-from time import sleep_ms
 from micropython import const
-from ustruct import unpack
 
-_i2c_addr = None
-_buf2 = bytearray(2)
+_MAKERBIT_MPR121 = const(0x5A) # MakerBit MPR121
+
 
 # CalibrationLock
 _BaselineTrackingOn = const(0b00)
 _BaselineTrackingOff = const(0b01)
 _BaselineTrackingAndInitializeFirst5MSB = const(0b10)
 _BaselineTrackingAndInitialize = const(0b11)
+
 
 # Touch
 _TOUCH_DISABLED = const(0b0000)
@@ -51,6 +50,7 @@ _TOUCH_ELE_0_TO_8 = const(0b1001)
 _TOUCH_ELE_0_TO_9 = const(0b1010)
 _TOUCH_ELE_0_TO_10 = const(0b1011)
 _TOUCH_ELE_0_TO_11 = const(0b1100)
+
 
 # Proximity
 _PROXMITY_DISABLED = const(0b00)
@@ -146,14 +146,14 @@ _AUTO_CONFIG_TL = const(0x7f)
 
 
 def write(register, value):
-    _buf2[0] = register
-    _buf2[1] = value
-    i2c.write(_i2c_addr, _buf)
+    buf = bytearray(2)
+    buf[0] = register
+    buf[1] = value
+    i2c.write(_MAKERBIT_MPR121, buf)
 
 
 def reset():
     write(0x80, 0x63)
-    sleep_ms(30)
 
 
 def stop():
@@ -165,8 +165,8 @@ def start(cl, eleprox, ele):
 
 
 def read():
-    res = i2c.read(_i2c_addr, 2)
-    return unpack(b"<H", res)[0]
+    data = i2c.read(_MAKERBIT_MPR121, 2)
+    return data[1]<<8 | data[0]
 
 
 def is_touched(sensor):
@@ -186,10 +186,7 @@ def get_sensor():
     return None
 
 
-def init(address):
-    global _i2c_addr
-    _i2c_addr = address
-
+def init():
     reset()
     stop()
 
@@ -258,4 +255,4 @@ def init(address):
     )
 
 
-init(0x5A)
+init()
